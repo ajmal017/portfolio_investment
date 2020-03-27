@@ -118,8 +118,8 @@ dmypy.json
 # Data
 *.csv
 .csv
-#*.xlsx
-#.xlsx
+*.xlsx
+.xlsx
 *.pkl
 .pkl
 *.pickle
