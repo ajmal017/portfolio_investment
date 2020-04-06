@@ -20,8 +20,9 @@ def stationarity_test(x, cutoff = None):
         print(f'The series is likely to be stationary. Pval: {pval}')
         return 1
     else:
-        print((f'The series is likely non stationary. Pval: {pval}'))
+        print(f'The series is likely non stationary. Pval: {pval}')
         return 0
+
 
 summary_prices = index.describe()
 
@@ -29,23 +30,23 @@ plt.plot(index)
 plt.grid()
 plt.show()
 
-#sust_returns = np.log(index) - np.log(index).shift(1)
-#sust_returns = sust_returns[1:]
+# sust_returns = np.log(index) - np.log(index).shift(1)
+# sust_returns = sust_returns[1:]
 # adfuller(sust_returns)
 
-#sust_returns.hist(bins=50)
-#plt.show()
+# sust_returns.hist(bins=50)
+# plt.show()
 
-#ret_info = sust_returns.describe()
+# ret_info = sust_returns.describe()
 
-#weekly_ret = sust_returns.resample('W').mean()
+# weekly_ret = sust_returns.resample('W').mean()
 
 # Calculate exponential moving average
 # Calculate MAvarages
 index['12d_EMA'] = index['Dow Jones Sustainability World Index'].ewm(span=12).mean()
 index['26d_EMA'] = index['Dow Jones Sustainability World Index'].ewm(span=26).mean()
 
-index[['Dow Jones Sustainability World Index','12d_EMA','26d_EMA']].plot(figsize=(10,5))
+index[['Dow Jones Sustainability World Index', '12d_EMA', '26d_EMA']].plot(figsize=(10, 5))
 plt.show()
 
 # Calculate Returns and analysis of volatility
@@ -53,7 +54,7 @@ index['returns'] = index['Dow Jones Sustainability World Index'].pct_change()
 
 summary_ret = index['returns'].describe()
 stationarity_test(index['returns'][1:], cutoff=0.05)
-plot_acf(index['returns'][1:]) # autocorr returns
+plot_acf(index['returns'][1:])  # autocorr returns
 plt.show()
 index['sq_returns'] = [x**2 for x in index['returns']]
 plt.plot(index['sq_returns'])
@@ -67,7 +68,7 @@ plt.grid()
 plt.show()
 
 end_t = int(len(index) * 0.7)
-train, test = index['returns'][: end_t], index['returns'][end_t :]
+train, test = index['returns'][: end_t], index['returns'][end_t:]
 
 model = arch_model(train, mean='Zero', vol='GARCH', p=3, q=3, dist='StudentsT')
 fit = model.fit()
@@ -78,7 +79,7 @@ index['MACD'] = index['26d_EMA'] - index['12d_EMA']
 # Calculate Signal
 index['Signal'] = index.MACD.ewm(span=9).mean()
 
-index[['MACD','Signal']].plot(figsize=(10,5))
+index[['MACD', 'Signal']].plot(figsize=(10,5))
 plt.show()
 
 # Define Signal
@@ -91,7 +92,7 @@ index['strategy_returns'] = index.returns * index.trading_signal.shift(1)
 cumulative_returns = (index.strategy_returns + 1).cumprod()-1
 
 # Plot Strategy Returns
-cumulative_returns.plot(figsize=(10,5))
+cumulative_returns.plot(figsize=(10, 5))
 plt.legend()
 plt.show()
 
@@ -118,4 +119,3 @@ excess_daily_returns = index.returns - daily_risk_free_return
 sharpe_ratio = (excess_daily_returns.mean() /
                 excess_daily_returns.std()) * np.sqrt(trading_days)
 print('The Sharpe ratio is %.2f' % sharpe_ratio)
-

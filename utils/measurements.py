@@ -452,4 +452,3 @@ def annual_return(returns, period=DAILY, annualization=None):
 #     if returns_1d:
 #         out = out.item()
 #     return out
-

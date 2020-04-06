@@ -52,7 +52,8 @@ class OptionPricing:
 
         return np.exp(-1.0 * self.rf * self.T) * average  # exp(-rT) discount factor
 
-if __name__ == " main ":
+
+if __name__ == " __main__ ":
 
     S0 = 100  # Stock price at time zero
     E = 100  # Strike

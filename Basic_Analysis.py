@@ -13,8 +13,8 @@ ibm.tail()  # last rows
 
 summary = ibm.describe()
 
-ibm.index  # inspect the index
-ibm.columns  # inspect columns
+# ibm.index  # inspect the index
+# ibm.columns  # inspect columns
 ts = ibm['Close'][-10:]  # extract last 10 obs
 
 print(ibm.loc[pd.Timestamp('2006-11-01'):pd.Timestamp('2006-12-31')].head())  # inspect first rows Nov & Dec
@@ -61,16 +61,3 @@ plt.show()
 
 cum_monthly_ret = cum_daily_return.resample('M').mean()
 print(cum_monthly_ret)
-
-
-
-
-
-
-
-
-
-
-
-
-

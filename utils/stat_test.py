@@ -1,5 +1,40 @@
 from statsmodels.tsa.stattools import coint, adfuller
+import scipy.stats as stats
 import numpy as np
+import pandas as pd
+
+r = np.random.normal(0, 1, 100)
+
+
+def jarque_bera_test(data, cutoff=0.05):
+    """
+    Returns the result for a JB test. If the data come from a normal distribution, the JB stat
+    has a chi-squared distribution with two degrees of freedom.
+    JB = n(S^2 / 6 + (K - 3)^2 / 24)
+
+    Parameters
+    ----------
+    data: univariate series
+    cutoff: level of significance of the test
+
+    """
+    n = data.shape[0]
+
+    if n < 500:
+        print('Warning: JB Test wokrs better with large sample sizes (> 500)')
+    skew = stats.skew(data)
+    kurt = stats.kurtosis(data)
+
+    S = float(n) * (skew ** 2 / 6 + (kurt - 3) ** 2 / 24)
+
+    t = stats.chi2(2).ppf(cutoff)
+    if S < t:
+        print(f'No evidence to reject as non-Normal according to the Jarque-Bera test.'
+              f'\n t_stat {S} < critical_value {t}')
+    else:
+        print(f"Reject that is Normal according to the Jarque-Bera test."
+              f"\n t_stat {S} > critical_value {t}")
+
 
 def adfuller_test(series, signif=0.05, name='', verbose=False):
     r = adfuller(series, autolag = 'AIC')
@@ -15,7 +50,7 @@ def adfuller_test(series, signif=0.05, name='', verbose=False):
     print(f'Test Stat = {output["test_stat"]}')
     print(f'N. of lag chosen = {output["n_lags"]}')
 
-    for key , val in r[4].items():
+    for key, val in r[4].items():
         print(f'Critical value {adjust(key)} = {round(val , 3)}')
     if p_value <= signif:
         print(f' -> P-value = {p_value}. Reject Null Hypothesis')
@@ -27,6 +62,7 @@ def adfuller_test(series, signif=0.05, name='', verbose=False):
         print(f'Series is likely not stationary')
         res = 0
         return res
+
 
 def find_cointegrated_pairs(data):
     n = data.shape[1]
@@ -49,7 +85,8 @@ def find_cointegrated_pairs(data):
                 pairs.append((keys[i], keys[j]))
     return score_matrix, pvalue_matrix, pairs
 
-def cointegration_test(x, y, cutoff= 0.05):
+
+def cointegration_test(x, y, cutoff=0.05):
     res_x = adfuller_test(x)
     res_y = adfuller_test(y)
 
@@ -59,3 +96,6 @@ def cointegration_test(x, y, cutoff= 0.05):
             print(f'Coint test pval = {pvalue}. The two series are likey cointegrated')
         else:
             print(f'Coint test pval = {pvalue}. The two series are likey not cointegrated')
+
+
+
