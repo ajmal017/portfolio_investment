@@ -127,8 +127,10 @@ if __name__ == '__main__':
     plt.xticks(rotation = 45)
     plt.title('Buy & Hold Equity_Line')
     plt.show()
+
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex = 'col')
     ax1.plot(dataframe.index[2:], strat_vol, label= 'Std over time')
+    plt.title('Metrics')
     ax1.grid()
     ax1.legend()
     ax2.plot(dataframe.index[2:], strat_sharpe, label = 'Sharpe over time')
@@ -137,6 +139,8 @@ if __name__ == '__main__':
     ax3.plot(dataframe.index[2:], strat_info_ratio, label = 'Information_ratio over time')
     ax3.grid()
     ax3.legend()
-    plt.title('Metrics')
     plt.xticks(rotation = 45)
+    plt.show()
+
+    plt.hist(strat_ret)
     plt.show()

@@ -3,45 +3,21 @@ import pandas as pd
 import statsmodels
 import statsmodels.api as sm
 from statsmodels.tsa.stattools import coint, adfuller
+from utils.stat_test import find_cointegrated_pairs
 
 import matplotlib.pyplot as plt
 import seaborn as sns; sns.set(style="whitegrid")
 
-# pd.core.common.is_list_like = pd.api.types.is_list_like
 from pandas_datareader import data as pdr
 import datetime
-# import fix_yahoo_finance as yf
-# yf.pdr_override()
-
-
-def find_cointegrated_pairs(data):
-    n = data.shape[1]
-    score_matrix = np.zeros((n, n))
-    pvalue_matrix = np.ones((n, n))
-    keys = data.keys()
-    pairs = []
-    for i in range(n):
-        for j in range(i+1, n):
-            S1 = data[keys[i]]
-            S2 = data[keys[j]]
-            result = coint(S1, S2)
-            score = result[0]
-            pvalue = result[1]
-            score_matrix[i, j] = score
-            pvalue_matrix[i, j] = pvalue
-            if pvalue < 0.05:
-                pairs.append((keys[i], keys[j]))
-    return score_matrix, pvalue_matrix, pairs
-
 
 start = datetime.datetime(2013, 1, 1)
 end = datetime.datetime(2018, 1, 1)
 
-tickers = ['AAPL', 'ADBE', 'SYMC', 'EBAY', 'MSFT', 'QCOM', 'HPQ', 'JNPR', 'AMD', 'IBM', 'SPY']
+tickers = ['AAPL', 'ADBE', 'EBAY', 'MSFT', 'QCOM', 'HPQ', 'JNPR', 'AMD', 'IBM', 'SPY']
 
 
 df = pdr.get_data_yahoo(tickers, start, end)['Close']
-df.tail()
 
 scores, pvalues, pairs = find_cointegrated_pairs(df)
 fig, ax = plt.subplots(figsize=(10, 10))

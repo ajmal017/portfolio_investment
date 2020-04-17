@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import datetime
 
+
 def get(tickers, startdate, enddate):
 
     def data(ticker):

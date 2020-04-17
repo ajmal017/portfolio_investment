@@ -53,7 +53,7 @@ class OptionPricing:
         return np.exp(-1.0 * self.rf * self.T) * average  # exp(-rT) discount factor
 
 
-if __name__ == " __main__ ":
+if __name__ == '__main__':
 
     S0 = 100  # Stock price at time zero
     E = 100  # Strike
@@ -63,6 +63,7 @@ if __name__ == " __main__ ":
     iterations = 1000000  # number of iterations
 
     model = OptionPricing(S0, E, T, rf, sigma, iterations)
+
     print('Call option price with MC approach ', model.call_option_sim())
     print('Put option price with MC approach ', model.put_option_sim())
 

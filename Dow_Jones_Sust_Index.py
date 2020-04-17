@@ -79,7 +79,7 @@ index['MACD'] = index['26d_EMA'] - index['12d_EMA']
 # Calculate Signal
 index['Signal'] = index.MACD.ewm(span=9).mean()
 
-index[['MACD', 'Signal']].plot(figsize=(10,5))
+index[['MACD', 'Signal']].plot(figsize=(10, 5))
 plt.show()
 
 # Define Signal

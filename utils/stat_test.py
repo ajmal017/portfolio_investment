@@ -65,6 +65,17 @@ def adfuller_test(series, signif=0.05, name='', verbose=False):
 
 
 def find_cointegrated_pairs(data):
+    """
+    Defines a function too look for cointegrated assets within the dataset. Default level of confidence = 5%
+
+    Parameters
+    ----------
+    data: pd:DataFrame of returns
+
+    Returns
+    -------
+
+    """
     n = data.shape[1]
     score_matrix = np.zeros((n, n))
     pvalue_matrix = np.ones((n, n))
