@@ -1,27 +1,25 @@
 # import numpy as np
+from utils.get_data import YahooData
 from config import basedir
 import pandas as pd
 import statistics as stat
 import pandas_datareader as pdr
-from pandas_datareader import data
 import matplotlib.pyplot as plt
+import datetime
 
 
 stocks = pd.read_excel(f'{basedir}/nyse_tickers.xlsx')
 stock_list = stocks['Symbol'].tolist()
 
-dataframe = pd.DataFrame(columns = stock_list[: 5])
-for stock in stock_list[: 10]:
-    try:
-        dataframe[stock] = pdr.get_data_yahoo(stock, '2016-01-01', '2020-01-01')['Adj Close']
-    except:
-        pass
+#
+# dataframe = pd.DataFrame(columns = stock_list[: 5])
+# for stock in stock_list[: 10]:
+#     try:
+#         dataframe[stock] = pdr.get_data_yahoo(stock, '2016-01-01', '2020-01-01')['Adj Close']
+#     except:
+#         pass
 
-dataframe.dropna(axis='columns', inplace = True)
-
-# data = data.DataReader(stock_uni, 'yahoo', start = '1/1/2000')
-benchmark = pdr.get_data_yahoo(['^GSPC'], '2016-01-01', '2020-01-01')['Adj Close']
-# benchmark = data.DataReader(['GSPC'], 'yahoo', start = '1/1/2000')
+#dataframe.dropna(axis='columns', inplace = True)
 
 
 class BuyAndHold:
@@ -117,6 +115,14 @@ class BuyAndHold:
 
 
 if __name__ == '__main__':
+    # ticker = stock_list[: 10]
+    ticker = ['GE', 'IBM', 'GOOG']
+    start = datetime.datetime(2006, 1, 1)
+    end = datetime.datetime(2020, 1, 1)
+    series = 'Adj Close'
+    dataframe = YahooData(ticker, start, end, series).get_series()
+    benchmark = YahooData(['SPY'], start, end, series).get_series()
+
     strat = BuyAndHold(dataframe, benchmark)
     strat_ret, strat_vol, equity_line, strat_cumret, strat_sharpe,\
         strat_info_ratio = strat.run()

@@ -1,6 +1,10 @@
-import pandas as pd
+# import pandas as pd
 import pandas_datareader as pdr
 import datetime
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+plt.style.use('ggplot')
 
 
 class YahooData:
@@ -20,6 +24,7 @@ class YahooData:
     get_series() : Pandas DataFrame containing only the series of interest, with Date as index and Tickers as columns
 
     """
+
     def __init__(self, tickers, start_date, end_date, series=None):
         self.tickers = tickers
         self.start_date = start_date
@@ -36,11 +41,19 @@ class YahooData:
         return self.data[self.series]
 
 
-
 if __name__ == '__main__':
     ticker = ['GE', 'IBM', 'GOOG']
     start = datetime.datetime(2006, 10, 1)
     end = datetime.datetime(2019, 1, 1)
-    y = YahooData(ticker, start, end, series = 'Adj Close')
+    series = 'Adj Close'
+    y = YahooData(ticker, start, end, series)
     dataset = y.get_data()
     adj_close = y.get_series()
+
+    norm_prices = adj_close / adj_close.iloc[0, :]
+
+    plt.plot(norm_prices)
+    plt.legend(norm_prices.columns)
+    plt.title(series)
+    plt.xticks(rotation = 45)
+    plt.show()
