@@ -6,6 +6,7 @@ from config import basedir
 from utils.measurements import *
 from utils.get_data import YahooData
 
+plt.style.use('ggplot')
 
 stocks = pd.read_excel(f'{basedir}/nyse_tickers.xlsx')
 stock_list = stocks['Symbol'].tolist()
@@ -22,12 +23,12 @@ class TimeSeriesMomentum:
     Parameters
     ----------
     prices: Pandas Time Series dataframe of prices
-
+    benchmark. Pandas Time Series dataframe of prices. Benchmark used to compute Information Ratio
 
     Returns
     -------
     time_series_mom: returns a Pd Series of portfolio returns
-    cumulative_ret: returns the Equity Line (eg capital * cumulative returns)
+    cumulative_ret: returns the cumulative returns and the cumulative wealth (eg capital * cumulative returns)
     sharpe_ratio: returns the strategy Sharpe Ratio over the whole back-testing period
     information_ratio: returns the strategy Information Ratio over the whole back-testing period
 
@@ -45,10 +46,11 @@ class TimeSeriesMomentum:
 
     def time_series_mom(self):
         if isinstance(self.returns, pd.DataFrame):
-            roll_std = self.returns.rolling(window = 52).std()[52:]
-            mean_ret = self.returns[: -4].rolling(window = 48).mean()[roll_std.first_valid_index():]
+            roll_std = self.returns.rolling(window = 52).std().dropna()
+            mean_ret = self.returns.rolling(window = 48).mean()[: -4].dropna()
+            mean_ret.index = roll_std.index
             weights = (mean_ret / roll_std).dropna()
-            weights.index = self.returns.index[4:]
+            # weights.index = self.returns.index[4:]
             port_ret = weights.shift(1) * self.returns
             port_ret = port_ret.dropna().sum(axis=1).to_frame()
             port_ret.columns = ['Portfolio Returns']
@@ -79,8 +81,8 @@ class TimeSeriesMomentum:
 
 
 if __name__ == "__main__":
-    # ticker =['GE', 'IBM', 'GOOG']
-    ticker = stock_list[80: 100]
+    ticker = ['GE', 'IBM', 'GOOG']
+    # ticker = stock_list[80: 100]
     start = datetime.datetime(2006, 1, 1)
     end = datetime.datetime(2020, 1, 1)
     series = 'Adj Close'

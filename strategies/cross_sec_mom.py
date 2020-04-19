@@ -3,19 +3,33 @@ import pandas as pd
 import numpy as np
 import datetime
 from config import basedir
+import matplotlib.pyplot as plt
+
+plt.style.use('ggplot')
 
 stocks = pd.read_excel(f'{basedir}/nyse_tickers.xlsx')
 stock_list = stocks['Symbol'].tolist()
 
+
 class CrossSectionalMomentum:
     """
     Defines a Cross Sectional Momentum strategy.
+    The strategy uses weekly returns, automatically computed by feeding prices in.
+
+    Weight = (rank - average of ranks) / n° of securities
+
 
     Parameters
     ----------
+    prices: Pandas Time Series dataframe of prices
+    benchmark. Pandas Time Series dataframe of prices. Benchmark used to compute Information Ratio
 
     Returns
     -------
+    time_series_mom: returns a Pd Series of portfolio returns
+    cumulative_ret: returns the cumulative returns and the cumulative wealth (eg capital * cumulative returns)
+    sharpe_ratio: returns the strategy Sharpe Ratio over the whole back-testing period
+    information_ratio: returns the strategy Information Ratio over the whole back-testing period
 
     """
 
@@ -31,7 +45,7 @@ class CrossSectionalMomentum:
         if isinstance(self.returns, pd.DataFrame):
             rank = pd.DataFrame(columns = self.returns.columns)
             weights = pd.DataFrame(columns = self.returns.columns)
-            mean_ret = self.returns[: -4].rolling(window = 48).sum()
+            mean_ret = self.returns.rolling(window = 48).sum()[: -4]
             for idx, row in mean_ret.iterrows():
                 tmp_rank = row.rank(ascending = False)
                 rank.loc[len(rank)] = tmp_rank
@@ -68,7 +82,8 @@ class CrossSectionalMomentum:
 
 
 if __name__ == "__main__":
-    ticker = stock_list[80: 100]
+    ticker = ['GE', 'IBM', 'GOOG']
+    # ticker = stock_list[80: 100]
     start = datetime.datetime(2006, 1, 1)
     end = datetime.datetime(2020, 1, 1)
     series = 'Adj Close'
@@ -79,4 +94,11 @@ if __name__ == "__main__":
     port_ret = cs_mom.cross_sec_mom()
     cum_ret, cum_wealth = cs_mom.cumulative()
     sharpe = cs_mom.sharpe_ratio()
-    info_ratio =cs_mom.information_ratio()
+    info_ratio = cs_mom.information_ratio()
+
+    plt.plot(cum_wealth, label = 'strategy_backtest')
+    plt.title('Cross Sectional Momentum: Cumulative Wealth')
+    plt.legend()
+    plt.grid()
+    plt.xticks(rotation = 45)
+    plt.show()
