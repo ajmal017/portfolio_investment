@@ -7,6 +7,10 @@ from utils.measurements import *
 from utils.get_data import YahooData
 
 
+stocks = pd.read_excel(f'{basedir}/nyse_tickers.xlsx')
+stock_list = stocks['Symbol'].tolist()
+
+
 class TimeSeriesMomentum:
     """
     Defines a TS Momentum Strategy based on Moskowitz, Pedersen 2012.
@@ -36,7 +40,7 @@ class TimeSeriesMomentum:
         self.capital = capital
         self.risk_free = risk_free
         self.returns = self.prices.pct_change().resample('W').last()
-        self.portfolio_ret = self.time_series_mom()
+        self.portfolio_ret, self.weights = self.time_series_mom()
         self.port_cum, _ = self.cumulative_ret()
 
     def time_series_mom(self):
@@ -44,12 +48,12 @@ class TimeSeriesMomentum:
             roll_std = self.returns.rolling(window = 52).std()[52:]
             mean_ret = self.returns[: -4].rolling(window = 48).mean()[roll_std.first_valid_index():]
             weights = (mean_ret / roll_std).dropna()
-
-            port_ret = weights * self.returns.shift(-1)
-            port_ret = port_ret.shift(1).dropna().sum(axis=1).to_frame()
+            weights.index = self.returns.index[4:]
+            port_ret = weights.shift(1) * self.returns
+            port_ret = port_ret.dropna().sum(axis=1).to_frame()
             port_ret.columns = ['Portfolio Returns']
 
-            return port_ret
+            return port_ret, weights
 
     def cumulative_ret(self):
         port_cumulative = self.portfolio_ret.cumsum()
@@ -75,14 +79,16 @@ class TimeSeriesMomentum:
 
 
 if __name__ == "__main__":
-    ticker = [ 'GE' , 'IBM' , 'GOOG' ]
-    start = datetime.datetime ( 2006 , 1 , 1 )
-    end = datetime.datetime ( 2020 , 1 , 1 )
+    # ticker =['GE', 'IBM', 'GOOG']
+    ticker = stock_list[80: 100]
+    start = datetime.datetime(2006, 1, 1)
+    end = datetime.datetime(2020, 1, 1)
     series = 'Adj Close'
-    dataframe = YahooData ( ticker , start , end , series ).get_series ( )
-    benchmark = YahooData ( [ 'SPY' ] , start , end , series ).get_series ( )
+    dataframe = YahooData(ticker, start, end, series).get_series()
+    dataframe.dropna(axis = 'columns', inplace = True)
+    benchmark = YahooData(['SPY'], start, end, series).get_series()
     ts_mom = TimeSeriesMomentum(dataframe, benchmark)
-    portfolio_backtest = ts_mom.time_series_mom()
+    port_ret, port_weights = ts_mom.time_series_mom()
     cumulative, wealth = ts_mom.cumulative_ret()
     sharpe_ratio_annualised = ts_mom.sharpe_ratio()
     information_ratio_annualised = ts_mom.information_ratio()
@@ -95,7 +101,7 @@ if __name__ == "__main__":
     plt.show()
 
     print(f'Strategy Return from {cumulative.index[0].date()} to {cumulative.index[-1].date()} : '
-          f'{round(cumulative.iloc[-1].values * 100, 2)} %')
+          f'{(round(float(cumulative.iloc[-1])* 100, 2))} %')
     print(f'Sharpe Ratio : {sharpe_ratio_annualised}')
     print(f'Information Ratio : {information_ratio_annualised}')
 
