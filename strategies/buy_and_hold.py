@@ -1,10 +1,6 @@
-# import numpy as np
 from utils.get_data import YahooData
 from config import basedir
 import pandas as pd
-import numpy as np
-import statistics as stat
-import pandas_datareader as pdr
 import matplotlib.pyplot as plt
 import datetime
 

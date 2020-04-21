@@ -1,7 +1,5 @@
-import pandas as pd
 import datetime
 import matplotlib.pyplot as plt
-import pandas_datareader as pdr
 from config import basedir
 from utils.measurements import *
 from utils.get_data import YahooData
