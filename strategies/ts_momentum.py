@@ -1,7 +1,7 @@
 import datetime
 import matplotlib.pyplot as plt
 from config import basedir
-from utils.measurements import *
+from utils.metrics import *
 from utils.get_data import YahooData
 
 plt.style.use('ggplot')

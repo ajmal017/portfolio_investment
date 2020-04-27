@@ -1791,9 +1791,9 @@ def gpd_loglikelihood_scale_and_shape_factory(price_data):
 def gpd_loglikelihood_scale_and_shape(scale, shape, price_data):
     n = len(price_data)
     result = -1 * float_info.max
-    if (scale != 0):
+    if scale != 0:
         param_factor = shape / scale
-        if (shape != 0 and param_factor >= 0 and scale >= 0):
+        if shape != 0 and param_factor >= 0 and scale >= 0:
             result = ((-n * np.log(scale)) -
                       (((1 / shape) + 1) *
                        (np.log((shape / scale * price_data) + 1)).sum()))

@@ -2,6 +2,7 @@ from statsmodels.tsa.stattools import coint, adfuller
 import scipy.stats as stats
 import numpy as np
 import pandas as pd
+import statsmodels.api as sm
 
 r = np.random.normal(0, 1, 100)
 
@@ -74,6 +75,9 @@ def find_cointegrated_pairs(data):
 
     Returns
     -------
+    score_matrix : matrix of results of cointegration tests
+    pval_matrix: matrix of p-values
+    pairs: list of cointegrated assets
 
     """
     n = data.shape[1]
@@ -108,5 +112,18 @@ def cointegration_test(x, y, cutoff=0.05):
         else:
             print(f'Coint test pval = {pvalue}. The two series are likey not cointegrated')
 
+
+def half_life(spread):
+    spread_lag = spread.shift(1)
+    spread_lag.iloc[0] = spread_lag.iloc[1]
+    spread_ret = spread - spread_lag
+    spread_ret.iloc[0] = spread_ret.iloc[1]
+    spread_lag2 = sm.add_constant(spread_lag)
+    model = sm.OLS(spread_ret, spread_lag2)
+    res = model.fit()
+    halflife = int(round(-np.log(2) / res.params[1], 0))
+    if halflife <= 0:
+        halflife = 1
+    return halflife
 
 
