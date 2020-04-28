@@ -33,16 +33,16 @@ class BuyAndHold:
 
     """
 
-    def __init__(self, prices, benchmark, capital=100, risk_free=0.02):
+    def __init__(self, prices, capital=100):
         self.prices = prices
         self.benchmark = benchmark
         self.capital = capital
-        self.risk_free = risk_free
-        self.weights = [1 / self.prices.shape[1]] * len(self.prices.columns)
-        self.returns, self.stdev = self.buy_and_hold()
+        # self.weights = [1 / self.prices.shape[1]] * len(self.prices.columns)
+        self.weights = 1 / len(self.prices.columns)
+        self.portfolio_ret, self.stdev = self.backtest()
         self.cum_wealth = self.cumulative_wealth()
 
-    def buy_and_hold(self):
+    def backtest(self):
         if isinstance(self.prices, pd.DataFrame):
             initial_prices = self.prices.iloc[0, :]
             returns = ((self.prices - initial_prices) / initial_prices) * self.weights
@@ -52,35 +52,30 @@ class BuyAndHold:
 
             return returns, stdev
         else:
+            print('Input not as pd DataFrame')
             raise TypeError
 
     def cumulative_wealth(self):
-        cum_wealth = (self.returns + 1) * self.capital
+        cum_wealth = (self.portfolio_ret + 1) * self.capital
 
         return cum_wealth
 
-    # def sharpe_ratio(self):
-    #     ann_sharpe = (self.returns.mean() - self.risk_free) / self.stdev * np.sqrt(252)
-    #
-    #     return ann_sharpe.to_numpy()
+    def cagr(self):
+        start_val = 1
+        end_val = self.portfolio_ret.iloc[-1]
+        start_date = self.portfolio_ret.index[0]
+        end_date = self.portfolio_ret.index[-1]
+        days = (end_date - start_date).days
+        CAGR_final = round(((float(end_val) / float(start_val)) ** (252.0 / days)) - 1, 4)
 
-    def get_benchmark_ret(self):
-        benchmark_ret = self.benchmark.pct_change ( ).dropna ( )
-
-        return benchmark_ret
-
-    # def information_ratio(self):
-    #     inf_ratio = (self.returns.mean().values -
-    #                  self.get_benchmark_ret().mean().values) / self.stdev * np.sqrt(252)
-    #     return inf_ratio.to_numpy()
+        return CAGR_final
 
     def run(self):
-        ret, vol = self.buy_and_hold()
+        ret, vol = self.backtest()
         cum_wealth = self.cumulative_wealth()
-        # sharpe = self.sharpe_ratio()
-        # info_ratio = self.information_ratio()
+        cagr = self.cagr()
 
-        return ret, vol, cum_wealth, sharpe, info_ratio
+        return ret, vol, cum_wealth, cagr
 
 
 if __name__ == '__main__':
@@ -93,16 +88,11 @@ if __name__ == '__main__':
     benchmark = YahooData(['SPY'], start, end, series).get_series()
 
     strat = BuyAndHold(dataframe, benchmark)
-    strat_ret, strat_vol, cum_wealth, sharpe, info_ratio = strat.run()
-
+    strat_ret, strat_vol, cum_wealth, cagr = strat.run()
 
     plt.plot(cum_wealth, label = 'backtest')
     plt.grid()
     plt.legend()
     plt.xticks(rotation = 45)
     plt.title('Buy & Hold Cumulative Wealth')
-    plt.show()
-
-
-    plt.hist(strat_ret)
     plt.show()

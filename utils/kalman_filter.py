@@ -2,6 +2,7 @@ from pykalman import KalmanFilter
 import pandas as pd
 import numpy as np
 
+
 # Construct a Kalman filter
 def kalman_filter_average(x):
     kf = KalmanFilter(transition_matrices = [1],

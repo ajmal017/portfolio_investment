@@ -1,7 +1,6 @@
 from statsmodels.tsa.stattools import coint, adfuller
 import scipy.stats as stats
 import numpy as np
-import pandas as pd
 import statsmodels.api as sm
 
 r = np.random.normal(0, 1, 100)

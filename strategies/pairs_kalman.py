@@ -22,7 +22,7 @@ class PairsKalmanTrading:
 
     Returns
     -------
-    final_res: cumulative returns as pandas DataFrame
+    final_res: cumulative returns as pandas Series
     sharpe_final: Sharpe Ratio
     CAGR_final: Compund Annual Growth Rate
     """
@@ -88,6 +88,8 @@ class PairsKalmanTrading:
             df1['numUnits'] = df1['num units long'] + df1['num units short']
             df1['spread pct ch'] = (df1['spread'] - df1['spread'].shift(1)) / (
                         (df1['x'] * abs(df1['hr'])) + df1['y'])
+
+            # define portfolio returns
             df1['port rets'] = df1['spread pct ch'] * df1['numUnits'].shift(1)
             df1['cum rets'] = df1['port rets'].cumsum()
             df1['cum rets'] = df1['cum rets'] + 1
@@ -109,14 +111,18 @@ class PairsKalmanTrading:
             # plot pair - results
             print("The pair {} and {} produced a Sharpe Ratio of {} and a CAGR of {}".format(
                 pair[0], pair[1], round(sharpe, 2), round(CAGR, 4)))
-            trad_res.plot(figsize = (20, 15), legend = True)
-            plt.show()
+            # trad_res.plot(figsize = (20, 15), legend = True)
+            # plt.title(f'{pair[0]} - {pair[1]}')
+            # plt.legend('Equity Line')
+            # plt.show()
 
         results_df = pd.concat(results, axis = 1).dropna()
 
         results_df /= len(results_df.columns)  # to get equally weighted  curves
-        final_res = results_df.sum(axis = 1).to_frame()  # final equity line
+        final_res = results_df.sum(axis = 1)  # final equity line
         final_res.plot(figsize = (20, 15))
+        plt.title('Kalman_PairsTrading EW Portfolio')
+        plt.legend('Equity Line', loc = 'upper left')
         plt.show()
 
         # calculate and print our some final stats for our combined equity curve
@@ -141,4 +147,4 @@ if __name__ == '__main__':
     dataframe = YahooData(tickers, start, end, series).get_series()
 
     trade = PairsKalmanTrading(dataframe)
-    rets, sharpe, cagr = trade.backtest()
+    cum_rets, sharpe, cagr = trade.backtest()

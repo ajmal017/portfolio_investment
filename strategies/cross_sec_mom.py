@@ -35,13 +35,13 @@ class CrossSectionalMomentum:
 
     def __init__(self, prices, benchmark, capital=100, risk_free=0):
         self.prices = prices
-        self.benchmark = benchmark
+        self.benchmark_ret = benchmark.pct_change().dropna()
         self.capital = capital
         self.risk_free = risk_free
         self.returns = self.prices.pct_change().resample('W').last()
-        self.port_ret = self.cross_sec_mom()
+        self.port_ret = self.backtest()
 
-    def cross_sec_mom(self):
+    def backtest(self):
         if isinstance(self.returns, pd.DataFrame):
             rank = pd.DataFrame(columns = self.returns.columns)
             weights = pd.DataFrame(columns = self.returns.columns)
@@ -70,14 +70,9 @@ class CrossSectionalMomentum:
 
         return ann_sharpe.to_numpy()
 
-    def get_benchmark_ret(self):
-        benchmark_ret = self.benchmark.pct_change().dropna()
-
-        return benchmark_ret
-
     def information_ratio(self):
         inf_ratio = (self.port_ret.mean().values -
-                     self.get_benchmark_ret().mean().values) / self.port_ret.std() * np.sqrt(52)
+                     self.benchmark_ret().mean().values) / self.port_ret.std() * np.sqrt(52)
         return inf_ratio.to_numpy()
 
 
@@ -91,7 +86,7 @@ if __name__ == "__main__":
     dataframe.dropna(axis = 'columns', inplace = True)
     benchmark = YahooData(['SPY'], start, end, series).get_series()
     cs_mom = CrossSectionalMomentum(dataframe, benchmark)
-    port_ret = cs_mom.cross_sec_mom()
+    port_ret = cs_mom.backtest()
     cum_ret, cum_wealth = cs_mom.cumulative()
     sharpe = cs_mom.sharpe_ratio()
     info_ratio = cs_mom.information_ratio()

@@ -35,14 +35,14 @@ class TimeSeriesMomentum:
 
     def __init__(self, prices, benchmark, capital=100, risk_free=0):
         self.prices = prices
-        self.benchmark = benchmark
+        self.benchmark_ret = benchmark.pct_change().dropna()
         self.capital = capital
         self.risk_free = risk_free
         self.returns = self.prices.pct_change().resample('W').last()
-        self.portfolio_ret, self.weights = self.time_series_mom()
+        self.portfolio_ret, self.weights = self.backtest()
         self.port_cum, _ = self.cumulative_ret()
 
-    def time_series_mom(self):
+    def backtest(self):
         if isinstance(self.returns, pd.DataFrame):
             roll_std = self.returns.rolling(window = 52).std().dropna()
             mean_ret = self.returns.rolling(window = 48).mean()[: -4].dropna()
@@ -67,14 +67,9 @@ class TimeSeriesMomentum:
 
         return ann_sharpe.to_numpy()
 
-    def get_benchmark_ret(self):
-        benchmark_ret = self.benchmark.pct_change().dropna()
-
-        return benchmark_ret
-
     def information_ratio(self):
         inf_ratio = (self.portfolio_ret.mean().values -
-                     self.get_benchmark_ret().mean().values) / self.portfolio_ret.std() * np.sqrt(52)
+                     self.benchmark_ret().mean().values) / self.portfolio_ret.std() * np.sqrt(52)
         return inf_ratio.to_numpy()
 
 
@@ -88,7 +83,7 @@ if __name__ == "__main__":
     dataframe.dropna(axis = 'columns', inplace = True)
     benchmark = YahooData(['SPY'], start, end, series).get_series()
     ts_mom = TimeSeriesMomentum(dataframe, benchmark)
-    port_ret, port_weights = ts_mom.time_series_mom()
+    port_ret, port_weights = ts_mom.backtest()
     cumulative, wealth = ts_mom.cumulative_ret()
     sharpe_ratio_annualised = ts_mom.sharpe_ratio()
     information_ratio_annualised = ts_mom.information_ratio()
