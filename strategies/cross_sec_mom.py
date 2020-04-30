@@ -39,7 +39,8 @@ class CrossSectionalMomentum:
         self.capital = capital
         self.risk_free = risk_free
         self.returns = self.prices.pct_change().resample('W').last()
-        self.port_ret = self.backtest()
+        self.port_ret, self.std, _ = self.backtest()
+        self.port_cum, _ = self.cumulative_returns()
 
     def backtest(self):
         if isinstance(self.returns, pd.DataFrame):
@@ -55,25 +56,34 @@ class CrossSectionalMomentum:
 
             port_ret = (weights.shift(1) * self.returns).dropna().sum(axis = 1).to_frame()
             port_ret.colums = ['Portfolio Returns']
+            stdev = port_ret.std()
 
-            return port_ret
+            return port_ret, stdev, weights
 
-    def cumulative(self):
-        cum = self.port_ret.cumsum()
-        cum_wealth = (cum + 1) * self.capital
+    def cumulative_returns(self):
+        cum_ret = self.port_ret.cumsum()
+        cum_wealth = (cum_ret + 1) * self.capital
 
-        return cum, cum_wealth
+        return cum_ret, cum_wealth
 
     def sharpe_ratio(self):
-        stdev = self.port_ret.std()
-        ann_sharpe = (self.port_ret.mean() - self.risk_free) / stdev * np.sqrt(52)
+        ann_sharpe = (self.port_ret.mean() - self.risk_free) / self.std * np.sqrt(52)
 
-        return ann_sharpe.to_numpy()
+        return ann_sharpe[0]
 
     def information_ratio(self):
-        inf_ratio = (self.port_ret.mean().values -
-                     self.benchmark_ret().mean().values) / self.port_ret.std() * np.sqrt(52)
-        return inf_ratio.to_numpy()
+        inf_ratio = (self.port_ret.mean() -
+                     self.benchmark_ret.mean()[0]) / self.std * np.sqrt(52)
+        return inf_ratio[0]
+
+    def cagr(self):
+        end_val = self.port_cum.iloc[-1] + 1
+        start_date = self.port_cum.index[0]
+        end_date = self.port_cum.index[-1]
+        days = (end_date - start_date).days
+        cagr = round((float(end_val)) ** (252.0 / days) - 1, 4)
+
+        return cagr
 
 
 if __name__ == "__main__":
@@ -83,13 +93,14 @@ if __name__ == "__main__":
     end = datetime.datetime(2020, 1, 1)
     series = 'Adj Close'
     dataframe = YahooData(ticker, start, end, series).get_series()
-    dataframe.dropna(axis = 'columns', inplace = True)
+    # dataframe.dropna(axis = 'columns', inplace = True)
     benchmark = YahooData(['SPY'], start, end, series).get_series()
-    cs_mom = CrossSectionalMomentum(dataframe, benchmark)
-    port_ret = cs_mom.backtest()
-    cum_ret, cum_wealth = cs_mom.cumulative()
-    sharpe = cs_mom.sharpe_ratio()
-    info_ratio = cs_mom.information_ratio()
+    trade = CrossSectionalMomentum(dataframe, benchmark)
+    port_ret, std, weights = trade.backtest()
+    cum_ret, cum_wealth = trade.cumulative_returns()
+    sharpe = trade.sharpe_ratio()
+    info_ratio = trade.information_ratio()
+    cagr = trade.cagr()
 
     plt.plot(cum_wealth, label = 'strategy_backtest')
     plt.title('Cross Sectional Momentum: Cumulative Wealth')
@@ -97,3 +108,9 @@ if __name__ == "__main__":
     plt.grid()
     plt.xticks(rotation = 45)
     plt.show()
+
+    print(f'Strategy Return from {cum_ret.index [ 0 ].date ( )} to {cum_ret.index [ -1 ].date ( )} : '
+            f'{(round ( float ( cum_ret.iloc [ -1 ] ) * 100 , 2 ))} %')
+    print(f'CAGR : {round ( cagr , 2 )}%')
+    print(f'Sharpe Ratio : {round ( sharpe , 2 )}')
+    print(f'Information Ratio : {round ( info_ratio , 2 )}')

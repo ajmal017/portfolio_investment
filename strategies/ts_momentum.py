@@ -39,8 +39,8 @@ class TimeSeriesMomentum:
         self.capital = capital
         self.risk_free = risk_free
         self.returns = self.prices.pct_change().resample('W').last()
-        self.portfolio_ret, self.weights = self.backtest()
-        self.port_cum, _ = self.cumulative_ret()
+        self.portfolio_ret, self.std, self.weights = self.backtest()
+        self.port_cum, _ = self.cumulative_returns()
 
     def backtest(self):
         if isinstance(self.returns, pd.DataFrame):
@@ -52,26 +52,35 @@ class TimeSeriesMomentum:
             port_ret = weights.shift(1) * self.returns
             port_ret = port_ret.dropna().sum(axis=1).to_frame()
             port_ret.columns = ['Portfolio Returns']
+            stdev = port_ret.std()
 
-            return port_ret, weights
+            return port_ret, stdev, weights
 
-    def cumulative_ret(self):
+    def cumulative_returns(self):
         port_cumulative = self.portfolio_ret.cumsum()
         cum_wealth = (port_cumulative + 1) * self.capital
 
         return port_cumulative, cum_wealth
 
     def sharpe_ratio(self):
-        stdev = self.portfolio_ret.std()
-        ann_sharpe = (self.portfolio_ret.mean() - self.risk_free) / stdev * np.sqrt(52)
+        ann_sharpe = (self.portfolio_ret.mean() - self.risk_free) / self.std * np.sqrt(52)
 
-        return ann_sharpe.to_numpy()
+        return ann_sharpe[0]
 
     def information_ratio(self):
         inf_ratio = (self.portfolio_ret.mean().values -
-                     self.benchmark_ret().mean().values) / self.portfolio_ret.std() * np.sqrt(52)
-        return inf_ratio.to_numpy()
+                     self.benchmark_ret.mean().values) / self.std * np.sqrt(52)
 
+        return inf_ratio[0]
+
+    def cagr(self):
+        end_val = self.port_cum.iloc[-1] + 1
+        start_date = self.port_cum.index[0]
+        end_date = self.port_cum.index[-1]
+        days = (end_date - start_date).days
+        cagr = round((float(end_val)) ** (252.0 / days) - 1, 4)
+
+        return cagr
 
 if __name__ == "__main__":
     ticker = ['GE', 'IBM', 'GOOG']
@@ -82,11 +91,12 @@ if __name__ == "__main__":
     dataframe = YahooData(ticker, start, end, series).get_series()
     dataframe.dropna(axis = 'columns', inplace = True)
     benchmark = YahooData(['SPY'], start, end, series).get_series()
-    ts_mom = TimeSeriesMomentum(dataframe, benchmark)
-    port_ret, port_weights = ts_mom.backtest()
-    cumulative, wealth = ts_mom.cumulative_ret()
-    sharpe_ratio_annualised = ts_mom.sharpe_ratio()
-    information_ratio_annualised = ts_mom.information_ratio()
+
+    trade = TimeSeriesMomentum(dataframe, benchmark)
+    port_ret, stdev, port_weights = trade.backtest()
+    cumulative, wealth = trade.cumulative_returns()
+    sharpe = trade.sharpe_ratio()
+    info_ratio = trade.information_ratio()
 
     plt.plot(wealth, label = 'strategy_backtest')
     plt.grid()
@@ -97,7 +107,8 @@ if __name__ == "__main__":
 
     print(f'Strategy Return from {cumulative.index[0].date()} to {cumulative.index[-1].date()} : '
           f'{(round(float(cumulative.iloc[-1])* 100, 2))} %')
-    print(f'Sharpe Ratio : {sharpe_ratio_annualised}')
-    print(f'Information Ratio : {information_ratio_annualised}')
+    print(f'CAGR : {round(cagr(), 2)}%')
+    print(f'Sharpe Ratio : {round(sharpe, 2)}')
+    print(f'Information Ratio : {round(info_ratio, 2)}')
 
 
