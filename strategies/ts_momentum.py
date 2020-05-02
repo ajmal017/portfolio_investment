@@ -25,17 +25,16 @@ class TimeSeriesMomentum:
 
     Returns
     -------
-    time_series_mom: returns a Pd Series of portfolio returns
+    backtest: returns portfolio returns as a pandas Dataframe, volatility and portfolio weights
     cumulative_ret: returns the cumulative returns and the cumulative wealth (eg capital * cumulative returns)
     sharpe_ratio: returns the strategy Sharpe Ratio over the whole back-testing period
     information_ratio: returns the strategy Information Ratio over the whole back-testing period
-
-
+    cagr = returns the Compound Annual Growth Rate
     """
 
     def __init__(self, prices, benchmark, capital=100, risk_free=0):
         self.prices = prices
-        self.benchmark_ret = benchmark.pct_change().dropna()
+        self.benchmark_ret = benchmark.pct_change().resample('W').last()
         self.capital = capital
         self.risk_free = risk_free
         self.returns = self.prices.pct_change().resample('W').last()
@@ -44,8 +43,8 @@ class TimeSeriesMomentum:
 
     def backtest(self):
         if isinstance(self.returns, pd.DataFrame):
-            roll_std = self.returns.rolling(window = 52).std().dropna()
-            mean_ret = self.returns.rolling(window = 48).mean()[: -4].dropna()
+            roll_std = self.returns.rolling(window = 52).std().iloc[52:]
+            mean_ret = self.returns.rolling(window = 48).mean()[48: -4]
             mean_ret.index = roll_std.index
             weights = (mean_ret / roll_std).dropna()
             # weights.index = self.returns.index[4:]
@@ -54,7 +53,7 @@ class TimeSeriesMomentum:
             port_ret.columns = ['Portfolio Returns']
             stdev = port_ret.std()
 
-            return port_ret, stdev, weights
+            return port_ret, stdev[0], weights
 
     def cumulative_returns(self):
         port_cumulative = self.portfolio_ret.cumsum()
@@ -68,8 +67,11 @@ class TimeSeriesMomentum:
         return ann_sharpe[0]
 
     def information_ratio(self):
+        ret_diff = (self.portfolio_ret.values - self.benchmark_ret[self.portfolio_ret.index[0]
+        : self.portfolio_ret.index[-1]].values)
+        std_diff = ret_diff.std()
         inf_ratio = (self.portfolio_ret.mean().values -
-                     self.benchmark_ret.mean().values) / self.std * np.sqrt(52)
+                     self.benchmark_ret.mean().values) / std_diff * np.sqrt(52)
 
         return inf_ratio[0]
 
@@ -93,22 +95,24 @@ if __name__ == "__main__":
     benchmark = YahooData(['SPY'], start, end, series).get_series()
 
     trade = TimeSeriesMomentum(dataframe, benchmark)
-    port_ret, stdev, port_weights = trade.backtest()
-    cumulative, wealth = trade.cumulative_returns()
+    port_ret, port_vol, port_weights = trade.backtest()
+    cum_ret, cum_wealth = trade.cumulative_returns()
     sharpe = trade.sharpe_ratio()
     info_ratio = trade.information_ratio()
+    cagr = trade.cagr()
 
-    plt.plot(wealth, label = 'strategy_backtest')
+    plt.plot(cum_wealth, label = 'strategy_backtest')
     plt.grid()
     plt.xticks(rotation = 45)
     plt.legend()
     plt.title('TS Momentum : Cumulative Wealth')
     plt.show()
 
-    print(f'Strategy Return from {cumulative.index[0].date()} to {cumulative.index[-1].date()} : '
-          f'{(round(float(cumulative.iloc[-1])* 100, 2))} %')
-    print(f'CAGR : {round(cagr(), 2)}%')
-    print(f'Sharpe Ratio : {round(sharpe, 2)}')
-    print(f'Information Ratio : {round(info_ratio, 2)}')
+    print(f'Strategy Return from {cum_ret.index [ 0 ].date ( )} to {cum_ret.index [ -1 ].date ( )} : '
+            f'{(round ( float ( cum_ret.iloc [ -1 ] ) * 100 , 2 ))} % and Annualised Volatility '
+            f'is: {round ( port_vol * np.sqrt(52) * 100 , 2 )}%')
+    print(f'CAGR : {round ( cagr * 100 , 2 )}%')
+    print(f'Sharpe Ratio : {round ( sharpe , 2 )}')
+    print(f'Information Ratio : {round ( info_ratio , 2 )}')
 
 

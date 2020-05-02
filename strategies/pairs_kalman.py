@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from math import sqrt
 from utils.stat_test import find_cointegrated_pairs, half_life
-plt.style.use('bmh')
+plt.style.use('ggplot')
 
 stocks = pd.read_excel(f'{basedir}/nyse_tickers.xlsx')
 stock_list = stocks['Symbol'].tolist()

@@ -26,20 +26,20 @@ class CrossSectionalMomentum:
 
     Returns
     -------
-    time_series_mom: returns a Pd Series of portfolio returns
+    backtest: returns portfolio returns as a pandas Dataframe, volatility and portfolio weights
     cumulative_ret: returns the cumulative returns and the cumulative wealth (eg capital * cumulative returns)
     sharpe_ratio: returns the strategy Sharpe Ratio over the whole back-testing period
     information_ratio: returns the strategy Information Ratio over the whole back-testing period
-
+    cagr = returns the Compound Annual Growth Rate
     """
 
     def __init__(self, prices, benchmark, capital=100, risk_free=0):
         self.prices = prices
-        self.benchmark_ret = benchmark.pct_change().dropna()
+        self.benchmark_ret = benchmark.pct_change().iloc[1:].resample('W').last()
         self.capital = capital
         self.risk_free = risk_free
         self.returns = self.prices.pct_change().resample('W').last()
-        self.port_ret, self.std, _ = self.backtest()
+        self.portfolio_ret, self.std, _ = self.backtest()
         self.port_cum, _ = self.cumulative_returns()
 
     def backtest(self):
@@ -54,26 +54,30 @@ class CrossSectionalMomentum:
             rank.index = self.returns.index[4:]
             weights.index = self.returns.index[4:]
 
-            port_ret = (weights.shift(1) * self.returns).dropna().sum(axis = 1).to_frame()
+            port_ret = (weights.shift(1) * self.returns).iloc[1:].sum(axis = 1).to_frame()
             port_ret.colums = ['Portfolio Returns']
             stdev = port_ret.std()
 
-            return port_ret, stdev, weights
+            return port_ret, stdev[0], weights
 
     def cumulative_returns(self):
-        cum_ret = self.port_ret.cumsum()
+        cum_ret = self.portfolio_ret.cumsum()
         cum_wealth = (cum_ret + 1) * self.capital
 
         return cum_ret, cum_wealth
 
     def sharpe_ratio(self):
-        ann_sharpe = (self.port_ret.mean() - self.risk_free) / self.std * np.sqrt(52)
+        ann_sharpe = (self.portfolio_ret.mean() - self.risk_free) / self.std * np.sqrt(52)
 
         return ann_sharpe[0]
 
     def information_ratio(self):
-        inf_ratio = (self.port_ret.mean() -
-                     self.benchmark_ret.mean()[0]) / self.std * np.sqrt(52)
+        ret_diff = (self.portfolio_ret.values - self.benchmark_ret[self.portfolio_ret.index[0]
+                                                                     : self.portfolio_ret.index[-1]].values)
+        std_diff = ret_diff.std()
+        inf_ratio = (self.portfolio_ret.mean().values -
+                     self.benchmark_ret.mean().values) / std_diff * np.sqrt(52)
+
         return inf_ratio[0]
 
     def cagr(self):
@@ -96,7 +100,7 @@ if __name__ == "__main__":
     # dataframe.dropna(axis = 'columns', inplace = True)
     benchmark = YahooData(['SPY'], start, end, series).get_series()
     trade = CrossSectionalMomentum(dataframe, benchmark)
-    port_ret, std, weights = trade.backtest()
+    port_ret, port_vol, weights = trade.backtest()
     cum_ret, cum_wealth = trade.cumulative_returns()
     sharpe = trade.sharpe_ratio()
     info_ratio = trade.information_ratio()
@@ -110,7 +114,8 @@ if __name__ == "__main__":
     plt.show()
 
     print(f'Strategy Return from {cum_ret.index [ 0 ].date ( )} to {cum_ret.index [ -1 ].date ( )} : '
-            f'{(round ( float ( cum_ret.iloc [ -1 ] ) * 100 , 2 ))} %')
-    print(f'CAGR : {round ( cagr , 2 )}%')
+            f'{(round ( float ( cum_ret.iloc [ -1 ] ) * 100 , 2 ))} % and Annualised Volatility '
+          f'is: {round(port_vol * np.sqrt(52) * 100, 2)}%')
+    print(f'CAGR : {round ( cagr * 100 , 2 )}%')
     print(f'Sharpe Ratio : {round ( sharpe , 2 )}')
     print(f'Information Ratio : {round ( info_ratio , 2 )}')

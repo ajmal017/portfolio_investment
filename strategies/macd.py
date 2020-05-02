@@ -11,20 +11,30 @@ stock_list = stocks['Symbol'].tolist()
 
 class Macd:
     """
-    Defines a trading strategy using a Moving Average Convergence-Divergence
+    Defines a trading strategy using a Moving Average Convergence-Divergence.
+    The 12-day and 26-day Exponentially Weighted Moving Averages are computed.
+    The MACD is defined as the difference. The signal is defined as the ewma of the MACD
+    on a 9-day span. If Signal > MACD, enter the trade.
 
     Parameters
     ----------
-    dataframe: pandas Dataframe of prices
+    prices: Pandas Time Series dataframe of prices
+    benchmark. Pandas Time Series dataframe of prices. Benchmark used to compute Information Ratio
 
-
+    Returns
+    -------
+    backtest: returns portfolio returns as a pandas Dataframe, volatility and portfolio weights
+    cumulative_ret: returns the cumulative returns and the cumulative wealth (eg capital * cumulative returns)
+    sharpe_ratio: returns the strategy Sharpe Ratio over the whole back-testing period
+    information_ratio: returns the strategy Information Ratio over the whole back-testing period
+    cagr = returns the Compound Annual Growth Rate
     """
     def __init__(self, prices, benchmark, capital=100, risk_free=0.01):
         self.prices = prices
         self.capital = capital
-        self.benchmark_ret = benchmark.pct_change().dropna()
+        self.benchmark_ret = benchmark.pct_change().iloc[1:]
         self.risk_free = risk_free
-        self.port_ret = self.backtest()
+        self.portfolio_ret, self.std = self.backtest()
         self.cumret, self.cumwealth = self.cumulative_returns()
 
     def backtest(self):
@@ -46,23 +56,28 @@ class Macd:
         # Calculate Strategy Returns
         returns = self.prices['strategy_returns'] = self.prices['returns'] * self.prices['trading_signal'].shift(1)
 
-        return returns.dropna().to_frame()
+        std = returns.std()
+
+        return returns.iloc[1:].to_frame(), std
 
     def cumulative_returns(self):
-        cum_returns = self.port_ret.cumsum()
+        cum_returns = self.portfolio_ret.cumsum()
         cum_wealth = (cum_returns + 1) * self.capital
 
         return cum_returns, cum_wealth
 
     def sharpe_ratio(self):
-        stdev = self.port_ret.std()
-        ann_sharpe = (self.port_ret.mean() - self.risk_free) / stdev * np.sqrt(252)
+        ann_sharpe = (self.portfolio_ret.mean() - self.risk_free) / self.std * np.sqrt(252)
 
         return ann_sharpe[0]
 
     def information_ratio(self):
-        inf_ratio = ((self.port_ret.mean().values -
-                     self.benchmark_ret.mean().values) / self.port_ret.std()) * np.sqrt(252)
+        ret_diff = (self.portfolio_ret.values - self.benchmark_ret [ self.portfolio_ret.index [ 0 ]
+                                                                     : self.portfolio_ret.index [ -1 ] ].values)
+        std_diff = ret_diff.std()
+        inf_ratio = (self.portfolio_ret.mean().values -
+                     self.benchmark_ret.mean().values) / std_diff * np.sqrt(252)
+
         return inf_ratio[0]
 
     def cagr(self):
@@ -85,21 +100,22 @@ if __name__ == '__main__':
     benchmark = YahooData(['SPY'], start, end, series).get_series()
 
     trade = Macd(dataframe, benchmark)
-    port_ret = trade.backtest()
+    port_ret, port_vol = trade.backtest()
     cum_ret, cum_wealth = trade.cumulative_returns()
     sharpe = trade.sharpe_ratio()
     info_ratio = trade.information_ratio()
     cagr = trade.cagr()
 
-    plt.plot(cum_wealth , label = 'strategy_backtest')
+    plt.plot(cum_wealth, label = 'strategy_backtest')
     plt.title('MACD: Cumulative Wealth')
     plt.legend()
     plt.grid()
     plt.xticks(rotation = 45)
     plt.show()
 
-    print(f'Strategy Return from {cum_ret.index [ 0 ].date ( )} to {cum_ret.index [ -1 ].date ( )} : '
-            f'{(round ( float ( cum_ret.iloc [ -1 ] ) * 100 , 2 ))} %')
-    print(f'CAGR : {round ( cagr , 2 )}%')
-    print(f'Sharpe Ratio : {round ( sharpe , 2 )}')
-    print(f'Information Ratio : {round ( info_ratio , 2 )}')
+    print ( f'Strategy Return from {cum_ret.index [ 0 ].date ( )} to {cum_ret.index [ -1 ].date ( )} : '
+            f'{(round ( float ( cum_ret.iloc [ -1 ] ) * 100 , 2 ))} % and Annualised Volatility '
+            f'is: {round ( port_vol * np.sqrt ( 252 ) * 100 , 2 )}%' )
+    print ( f'CAGR : {round ( cagr * 100 , 2 )}%' )
+    print ( f'Sharpe Ratio : {round ( sharpe , 2 )}' )
+    print ( f'Information Ratio : {round ( info_ratio , 2 )}' )

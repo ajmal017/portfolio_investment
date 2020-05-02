@@ -1,6 +1,7 @@
 from utils.get_data import YahooData
 from config import basedir
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import datetime
 
@@ -22,15 +23,10 @@ class BuyAndHold:
 
     Returns
     -------
-    buy_and_hold: returns, volatility and equity line as lists
+    backtest: returns portfolio returns, annualised volatility and equity line
     cumulative_ret: list of cumulative returns (being a buy&hold, each return corresponds to the last % change in price
                     since inception)
-    sharpe_ratio: returns a list with a TS of Sharpe Ratios at each point in time (eg sharpe ratio so far).
-                  [-1] to get the overall SR
-    information_ratio: returns a list with a TS of Information Ratios at each point in time
-                        (eg information ratio so far).
-                      [-1] to get the overall IR
-
+    cagr: returns the Compound Annual Growth Rate
     """
 
     def __init__(self, prices, capital=100):
@@ -43,12 +39,15 @@ class BuyAndHold:
     def backtest(self):
         if isinstance(self.prices, pd.DataFrame):
             initial_prices = self.prices.iloc[0, :]
-            returns = ((self.prices - initial_prices) / initial_prices) * self.weights
+            returns = ((self.prices[1:] - initial_prices) / initial_prices) * self.weights
             returns = returns.sum(axis = 1).to_frame()
             returns.columns = ['Portfolio Returns']
-            stdev = returns.std()
+            ret = self.prices.pct_change().iloc[1:]
+            ret = ret * self.weights
+            ret = ret.sum(axis=1).to_frame()
+            std = ret.std() * np.sqrt(252)
 
-            return returns, stdev
+            return returns, std[0]
         else:
             print('Input not as pd DataFrame')
             raise TypeError
@@ -84,9 +83,17 @@ if __name__ == '__main__':
     dataframe = YahooData(ticker, start, end, series).get_series()
     benchmark = YahooData(['SPY'], start, end, series).get_series()
 
-    strat = BuyAndHold(dataframe)
-    strat_ret, strat_vol, eq_line, cagr = strat.run()
+    trade = BuyAndHold(dataframe)
+    port_ret, port_vol, eq_line, cagr = trade.run()
 
-    print("Final Return from{} to {} is {}% and CAGR is {}%".format(
-        strat_ret.index[0], strat_ret.index[-1], round(float(strat_ret.iloc[-1]) * 100, 2), round(cagr * 100, 4)))
+    plt.plot(port_ret * 100, label = 'strategy_backtest')
+    plt.title('Buy&Hold : Cumulative Wealth')
+    plt.legend()
+    plt.grid()
+    plt.xticks(rotation = 45)
+    plt.show()
 
+    print(f'Strategy Return from {port_ret.index[0].date()} to {port_ret.index[-1].date()} : '
+            f'{(round(float(port_ret.iloc[-1]) * 100, 2))} % and Annualised Volatility '
+            f'is: {round(port_vol * 100, 2)}%')
+    print(f'CAGR : {round(cagr * 100, 2 )}%')
