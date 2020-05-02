@@ -72,8 +72,8 @@ class Macd:
         return ann_sharpe[0]
 
     def information_ratio(self):
-        ret_diff = (self.portfolio_ret.values - self.benchmark_ret [ self.portfolio_ret.index [ 0 ]
-                                                                     : self.portfolio_ret.index [ -1 ] ].values)
+        ret_diff = (self.portfolio_ret.values - self.benchmark_ret[self.portfolio_ret.index[0]
+                                                                   : self.portfolio_ret.index[-1]].values)
         std_diff = ret_diff.std()
         inf_ratio = (self.portfolio_ret.mean().values -
                      self.benchmark_ret.mean().values) / std_diff * np.sqrt(252)
@@ -113,9 +113,9 @@ if __name__ == '__main__':
     plt.xticks(rotation = 45)
     plt.show()
 
-    print ( f'Strategy Return from {cum_ret.index [ 0 ].date ( )} to {cum_ret.index [ -1 ].date ( )} : '
-            f'{(round ( float ( cum_ret.iloc [ -1 ] ) * 100 , 2 ))} % and Annualised Volatility '
-            f'is: {round ( port_vol * np.sqrt ( 252 ) * 100 , 2 )}%' )
-    print ( f'CAGR : {round ( cagr * 100 , 2 )}%' )
-    print ( f'Sharpe Ratio : {round ( sharpe , 2 )}' )
-    print ( f'Information Ratio : {round ( info_ratio , 2 )}' )
+    print(f'Strategy Return from {cum_ret.index [ 0 ].date ( )} to {cum_ret.index [ -1 ].date ( )} : '
+          f'{(round ( float ( cum_ret.iloc [ -1 ] ) * 100 , 2 ))} % and Annualised Volatility '
+          f'is: {round ( port_vol * np.sqrt ( 252 ) * 100 , 2 )}%')
+    print(f'CAGR : {round ( cagr * 100 , 2 )}%')
+    print(f'Annualised Sharpe Ratio : {round ( sharpe , 2 )}')
+    print(f'Annualised Information Ratio : {round ( info_ratio , 2 )}')

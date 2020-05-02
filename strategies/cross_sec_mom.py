@@ -117,5 +117,5 @@ if __name__ == "__main__":
             f'{(round ( float ( cum_ret.iloc [ -1 ] ) * 100 , 2 ))} % and Annualised Volatility '
           f'is: {round(port_vol * np.sqrt(52) * 100, 2)}%')
     print(f'CAGR : {round ( cagr * 100 , 2 )}%')
-    print(f'Sharpe Ratio : {round ( sharpe , 2 )}')
-    print(f'Information Ratio : {round ( info_ratio , 2 )}')
+    print(f'Annualised Sharpe Ratio : {round ( sharpe , 2 )}')
+    print(f'Annualised Information Ratio : {round ( info_ratio , 2 )}')

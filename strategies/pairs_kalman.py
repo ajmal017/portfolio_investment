@@ -27,16 +27,19 @@ class PairsKalmanTrading:
     CAGR_final: Compund Annual Growth Rate
     """
 
-    def __init__(self, dataframe):
+    def __init__(self, dataframe, benchmark):
         self.dataframe = dataframe
-        self.training_p, self.backtest_p = self.split_sample()
+        self.benchmark = benchmark
+        # self.benchmark_ret = benchmark.pct_change().iloc[1:]
+        self.training_p, self.backtest_p, self.benchmark_ret = self.split_sample()
         self.pairs = self.coint_pairs()
 
     def split_sample(self):
         split = int(len(self.dataframe) * 0.4)
         train_p = self.dataframe[: split]
         backt_p = self.dataframe[split:]
-        return train_p, backt_p
+        benchmark_ret = self.benchmark[split:].pct_change().iloc[1:]
+        return train_p, backt_p, benchmark_ret
 
     def coint_pairs(self):
         _, pval_m, pairs = find_cointegrated_pairs(self.training_p)
@@ -49,6 +52,7 @@ class PairsKalmanTrading:
 
     def backtest(self):
         results = []
+        result_cum = []
         for pair in self.pairs:
             x = self.backtest_p[pair[0]]
             y = self.backtest_p[pair[1]]
@@ -92,7 +96,7 @@ class PairsKalmanTrading:
             # define portfolio returns
             df1['port rets'] = df1['spread pct ch'] * df1['numUnits'].shift(1)
             df1['cum rets'] = df1['port rets'].cumsum()
-            df1['cum rets'] = df1['cum rets'] + 1
+            df1['equity_line'] = df1['cum rets'] + 1
 
             try:
                 sharpe = ((df1['port rets'].mean() / df1['port rets'].std()) * sqrt(252))
@@ -100,42 +104,43 @@ class PairsKalmanTrading:
                 sharpe = 0.0
 
             start_val = 1
-            end_val = df1['cum rets'].iat[-1]
+            end_val = df1['equity_line'].iat[-1]
             start_date = df1.iloc[0].name
             end_date = df1.iloc[-1].name
             days = (end_date - start_date).days
             CAGR = round(((float(end_val) / float(start_val)) ** (252.0 / days)) - 1, 4)
-            trad_res = df1['cum rets']
-            results.append(df1['cum rets'])
+            results.append(df1['port rets'])
+            result_cum.append(df1['cum rets'])
 
             # plot pair - results
             print("The pair {} and {} produced a Sharpe Ratio of {} and a CAGR of {}".format(
                 pair[0], pair[1], round(sharpe, 2), round(CAGR, 4)))
-            # trad_res.plot(figsize = (20, 15), legend = True)
-            # plt.title(f'{pair[0]} - {pair[1]}')
-            # plt.legend('Equity Line')
-            # plt.show()
 
         results_df = pd.concat(results, axis = 1).dropna()
+        cum_results_df = pd.concat(result_cum, axis = 1).dropna()
 
         results_df /= len(results_df.columns)  # to get equally weighted  curves
-        final_res = results_df.sum(axis = 1)  # final equity line
-        final_res.plot(figsize = (20, 15))
-        plt.title('Kalman_PairsTrading EW Portfolio')
-        plt.legend('Equity Line', loc = 'upper left')
-        plt.show()
+        final_res = results_df.sum(axis = 1)
+        cum_results_df /= len(cum_results_df.columns)
+        final_cum_results = cum_results_df.sum(axis = 1)
+        (final_cum_results+1).plot(figsize = (20, 15))
+        std = final_res.std()
 
         # calculate and print our some final stats for our combined equity curve
-        sharpe_final = (final_res.pct_change().mean() / final_res.pct_change().std()) * (sqrt(252))
+        sharpe_final = (final_res.mean() / std) * np.sqrt(252)
         start_val = 1
-        end_val = final_res.iloc[-1]
-        start_date = final_res.index[0]
-        end_date = final_res.index[-1]
+        end_val = final_cum_results.iloc[-1] + 1
+        start_date = final_cum_results.index[0]
+        end_date = final_cum_results.index[-1]
         days = (end_date - start_date).days
         CAGR_final = round(((float(end_val) / float(start_val)) ** (252.0 / days)) - 1, 4)
-        print("Sharpe Ratio is {} and CAGR is {}".format(round(sharpe_final, 2), round(CAGR_final, 4)))
 
-        return final_res, sharpe_final, CAGR_final
+
+        diff_ret = final_res.values - self.benchmark_ret.values
+        diff_std = diff_ret.std()
+        ann_information_ratio = (final_res.mean() - self.benchmark_ret.mean()) / diff_std * np.sqrt(252)
+
+        return final_res, std, final_cum_results, sharpe_final, ann_information_ratio[0], CAGR_final
 
 
 if __name__ == '__main__':
@@ -145,6 +150,19 @@ if __name__ == '__main__':
     end = datetime(2020, 1, 1)
     series = 'Adj Close'
     dataframe = YahooData(tickers, start, end, series).get_series()
+    benchmark = YahooData(['SPY'], start, end, series).get_series()
 
-    trade = PairsKalmanTrading(dataframe)
-    cum_rets, sharpe, cagr = trade.backtest()
+    trade = PairsKalmanTrading(dataframe, benchmark)
+    port_ret, port_vol, cum_ret, sharpe, info_ratio, cagr = trade.backtest()
+
+    print ( f'Strategy Return from {cum_ret.index[0].date()} to {cum_ret.index[-1].date()} : '
+            f'{(round(float(cum_ret.iloc[-1]) * 100, 2))} % and Annualised Volatility '
+            f'is: {round(port_vol * np.sqrt(252) * 100, 2)}%')
+    print(f'CAGR : {round(cagr * 100 ,2 )}%')
+    print(f'Annualised Sharpe Ratio : {round(sharpe, 2)}')
+    print(f'Annualised Information Ratio : {round(info_ratio, 2)}')
+
+    plt.plot(cum_ret + 1)
+    plt.title('Kalman_PairsTrading EW Portfolio')
+    plt.legend('Equity Line', loc = 'upper left')
+    plt.show()
