@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-risk_free = 0.05
+risk_free = 0.02
 
 
 def capm(start_date, end_date, ticker_1, mkt_ticker):
@@ -52,7 +52,6 @@ def capm(start_date, end_date, ticker_1, mkt_ticker):
     # Compute expected return
     exp_ret = risk_free + beta_reg * (data['m_returns'].mean() * 12 - risk_free)
     print('Expected Return: ', f'{round(exp_ret*100, 2)}%')
-
 
 
 if __name__ == "__main__":

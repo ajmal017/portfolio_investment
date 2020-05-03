@@ -45,16 +45,16 @@ if __name__ == '__main__':
     start = datetime.datetime(2006, 1, 1)
     end = datetime.datetime(2020, 1, 1)
     series = 'Adj Close'
-    ge = YahooData(['GE'], start, end, series).get_series()
-    ibm = YahooData(['IBM'], start, end, series).get_series()
+    # ge = YahooData(['GE'], start, end, series).get_series()
+    # ibm = YahooData(['IBM'], start, end, series).get_series()
     google = YahooData(['GOOG'], start, end, series).get_series()
 
     bb = BollingerBand(google)
     bollinger_b = bb.compute_bollinger_bands()
 
     # 30-day Bollinger Band Google
-    plt.plot(google.drop(columns = ['30-day std']))
-    plt.title('30-Day Bollinger Band - Google')
+    plt.plot(google.drop(columns = ['30-day STD']))
+    plt.title('30-Day Bollinger Band : Google')
     plt.ylabel('Price $')
     plt.xticks(rotation = 45)
     plt.show()
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     ax.plot(x_axis, google['30-day MA'], color = 'black', lw = 1, label = '30-day MA')
 
     ax.set_title('30-Day Bollinger Band - Google')
-    ax.set_xlabel('Date (Year/Month')
+    ax.set_xlabel('Date (Year/Month)')
     ax.set_ylabel('Price $')
     ax.legend()
     plt.show()

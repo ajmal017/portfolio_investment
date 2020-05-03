@@ -126,3 +126,5 @@ def half_life(spread):
     return halflife
 
 
+def zscore(series):
+    return (series - series.mean()) / series.std()

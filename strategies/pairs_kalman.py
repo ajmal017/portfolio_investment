@@ -145,11 +145,13 @@ class PairsKalmanTrading:
 
 if __name__ == '__main__':
     # Download the data from Yahoo #
-    tickers = ['AAPL', 'ADBE', 'EBAY', 'GE', 'GOOG', 'IBM', 'MSFT', 'QCOM', 'HPQ', 'JNPR', 'AMD', 'IBM', 'SPY']
-    start = datetime(2006, 1, 1)
+    #tickers = ['AAPL', 'ADBE', 'EBAY', 'GE', 'GOOG', 'IBM', 'MSFT', 'QCOM', 'HPQ', 'JNPR', 'AMD', 'IBM', 'SPY']
+    tickers = stock_list[:150]
+    start = datetime(2010, 1, 1)
     end = datetime(2020, 1, 1)
     series = 'Adj Close'
     dataframe = YahooData(tickers, start, end, series).get_series()
+    dataframe.dropna(axis = 'columns', inplace = True)
     benchmark = YahooData(['SPY'], start, end, series).get_series()
 
     trade = PairsKalmanTrading(dataframe, benchmark)
@@ -163,6 +165,6 @@ if __name__ == '__main__':
     print(f'Annualised Information Ratio : {round(info_ratio, 2)}')
 
     plt.plot(cum_ret + 1)
-    plt.title('Kalman_PairsTrading EW Portfolio')
-    plt.legend('Equity Line', loc = 'upper left')
+    plt.title('Kalman_PairsTrading EW Portfolio: Equity Line')
+    # plt.legend('Equity Line', loc = 'upper left')
     plt.show()
